@@ -10,7 +10,8 @@ using MQTTnet.Client.Receiving;
 namespace ShellieToHomie {
     class Program {
         private static IMqttClient _mqttClient;
-        private static Shelly1pmClient _shelly1PmClient = new Shelly1pmClient();
+        private static Shelly1PmClient _shelly1PmClient = new Shelly1PmClient();
+        private static Shelly1PmHomieProducer _shelly1PmHomieProducer = new Shelly1PmHomieProducer();
 
         static async Task Main(string[] args) {
             var mqttFactory = new MqttFactory();
@@ -20,17 +21,26 @@ namespace ShellieToHomie {
 
             await _mqttClient.ConnectAsync(clientOptions, CancellationToken.None);
 
-            _shelly1PmClient.Initialize("shellies/shelly1pm-68C63AFADFF9", PublishMqttTopic);
+            await _shelly1PmClient.InitializeAsync("shellies/shelly1pm-68C63AFADFF9", PublishMqttTopic, SubscribeMqttTopic);
             await _mqttClient.SubscribeAsync("shellies/shelly1pm-68C63AFADFF9/#");
+
+            _shelly1PmHomieProducer.Initialize(_shelly1PmClient, "shelly1pm-68C63AFADFF9", "Office lights", ((topic, payload, level, retained) => {
+                var message = new MqttApplicationMessageBuilder().WithTopic(topic).WithPayload(payload).WithQualityOfServiceLevel(level).WithRetainFlag(retained).Build();
+                _mqttClient.PublishAsync(message).Wait();
+            }), (topic => {
+                Console.WriteLine("Subscribing to " + topic);
+                _mqttClient.SubscribeAsync(topic).Wait();
+            }));
 
             while (true) {
                 Console.WriteLine("Hello World!");
 
-                if (_shelly1PmClient.RelayState) await _shelly1PmClient.DisableRelayAsync();
-                else await _shelly1PmClient.EnableRelayAsync();
-
                 await Task.Delay(3000);
             }
+        }
+
+        private static async Task SubscribeMqttTopic(string topic) {
+            await _mqttClient.SubscribeAsync(topic);
         }
 
         private static async Task PublishMqttTopic(string topic, string value) {
@@ -38,7 +48,10 @@ namespace ShellieToHomie {
         }
 
         private static void HandleMessage(MqttApplicationMessageReceivedEventArgs obj) {
-            _shelly1PmClient.ProcessMqttMessage(obj.ApplicationMessage.Topic, Encoding.UTF8.GetString(obj.ApplicationMessage.Payload));
+            var payload = Encoding.UTF8.GetString(obj.ApplicationMessage.Payload);
+
+            _shelly1PmClient.ProcessMqttMessage(obj.ApplicationMessage.Topic, payload);
+            _shelly1PmHomieProducer.ProcessMqttMessage(obj.ApplicationMessage.Topic, payload);
         }
     }
 }

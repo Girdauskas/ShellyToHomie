@@ -30,7 +30,7 @@ namespace ShellieToHomie {
             Shelly1PmHomieProducer.Initialize(Shelly1PmClient, "shelly1pm-68C63AFADFF9", "Office lights", PublishToTopicDelegate, SubscribeToTopicDelegate);
 
             ShellyDimmerClient.Initialize("shellies/shellydimmer-D0E18A", PublishToTopicDelegate, SubscribeToTopicDelegate);
-            ShellyDimmerHomieProducer.Initialize(ShellyDimmerClient, "shellydimmer-D0E18A","Living room dimmer", PublishToTopicDelegate, SubscribeToTopicDelegate);
+            ShellyDimmerHomieProducer.Initialize(ShellyDimmerClient, "shellydimmer-D0E18A", "Living room dimmer", PublishToTopicDelegate, SubscribeToTopicDelegate);
 
             while (true) {
                 //Shelly1PmClient.EnableRelay();
@@ -42,6 +42,7 @@ namespace ShellieToHomie {
         }
 
         private static void PublishToTopicDelegate(string topic, string payload, byte qoslevel, bool isretained) {
+            Console.WriteLine($"Publishing {topic} = {payload}");
             var message = new MqttApplicationMessageBuilder().WithTopic(topic).WithPayload(payload).WithQualityOfServiceLevel(qoslevel).WithRetainFlag(isretained).Build();
             _mqttClient.PublishAsync(message).Wait();
         }

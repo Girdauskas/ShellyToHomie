@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DevBot9.Protocols.Homie" Version="0.7.0" />
+    <PackageReference Include="MQTTnet" Version="3.0.15" />
+  </ItemGroup>
+
+</Project>

@@ -1,16 +1,16 @@
 ﻿using DevBot9.Protocols.Homie;
 
 namespace ShellieToHomie {
-    public class Shelly1PmHomieProducer {
+    public class ShellyDimmerHomieProducer {
         private HostDevice _hostDevice;
         private Device.PublishToTopicDelegate _publishMqttTopic;
         private Device.SubscribeToTopicDelegate _subscribeMqttTopic;
 
-        public Shelly1PmClient ShellyClient { get; private set; }
+        public ShellyDimmerClient ShellyClient { get; private set; }
 
-        private HostBooleanProperty _relayStateProperty;
-        private HostBooleanProperty _inputStateProperty;
-        private HostBooleanProperty _relayControlProperty;
+        private HostBooleanProperty _stateProperty;
+        private HostIntegerProperty _brightnessProperty;
+        private HostBooleanProperty _onOffCommand;
 
         private HostFloatProperty _actualPowerConsumptionProperty;
         private HostFloatProperty _energyUsedProperty;
@@ -18,7 +18,7 @@ namespace ShellieToHomie {
 
         public bool IsInitialized { get; private set; }
 
-        public void Initialize(Shelly1PmClient shellyClient, string homieDeviceId, string homieDeviceFriendlyName, Device.PublishToTopicDelegate publishToTopicDelegate, Device.SubscribeToTopicDelegate subscribeToTopicDelegate) {
+        public void Initialize(ShellyDimmerClient shellyClient, string homieDeviceId, string homieDeviceFriendlyName, Device.PublishToTopicDelegate publishToTopicDelegate, Device.SubscribeToTopicDelegate subscribeToTopicDelegate) {
             ShellyClient = shellyClient;
 
             _publishMqttTopic = publishToTopicDelegate;
@@ -27,18 +27,34 @@ namespace ShellieToHomie {
             _hostDevice = DeviceFactory.CreateHostDevice(homieDeviceId, homieDeviceFriendlyName);
 
             _hostDevice.UpdateNodeInfo("basic", "Basic", "no-type");
-            _relayStateProperty = _hostDevice.CreateHostBooleanProperty(PropertyType.State, "basic", "actual-relay-state", "Actual relay state", ShellyClient.OutputState);
-            _inputStateProperty = _hostDevice.CreateHostBooleanProperty(PropertyType.State, "basic", "actual-input-state", "Actual input state", ShellyClient.InputState);
-            _relayControlProperty = _hostDevice.CreateHostBooleanProperty(PropertyType.Command, "basic", "relay-control", "Manual relay control");
+            _stateProperty = _hostDevice.CreateHostBooleanProperty(PropertyType.State, "basic", "actual-state", "Actual state", ShellyClient.ActualState);
+            _brightnessProperty = _hostDevice.CreateHostIntegerProperty(PropertyType.Parameter, "basic", "brightness", "Brightness", ShellyClient.Brightness);
+            _onOffCommand = _hostDevice.CreateHostBooleanProperty(PropertyType.Command, "basic", "on-off-command", "Turn on off");
 
             _hostDevice.UpdateNodeInfo("advanced", "Advanced", "no-type");
             _actualPowerConsumptionProperty = _hostDevice.CreateHostFloatProperty(PropertyType.State, "advanced", "actual-power-consumption", "Actual power consumption", (float)ShellyClient.PowerInW, "W");
             _internalTemperatureProperty = _hostDevice.CreateHostFloatProperty(PropertyType.State, "advanced", "internal-temperature", "Internal temperature", (float)shellyClient.TemperatureInC, "°C");
             _energyUsedProperty = _hostDevice.CreateHostFloatProperty(PropertyType.State, "advanced", "energy-used", "Energy used", (float)shellyClient.EnergyInKwh, "kWh");
 
-            _relayControlProperty.PropertyChanged += (sender, args) => {
-                if (_relayControlProperty.Value) ShellyClient.EnableRelay();
-                else ShellyClient.DisableRelay();
+            _onOffCommand.PropertyChanged += (sender, args) => {
+                if (_onOffCommand.Value) ShellyClient.TurnOn();
+                else ShellyClient.TurnOff();
+            };
+
+            _brightnessProperty.PropertyChanged += (sender, args) => {
+                var value = _brightnessProperty.Value;
+
+                if (value < 10) {
+                    value = 10;
+                    _brightnessProperty.Value = value;
+                }
+
+                if (value > 100) {
+                    value = 100;
+                    _brightnessProperty.Value = value;
+                }
+
+                ShellyClient.SetBrightness(value);
             };
 
             _hostDevice.Initialize(_publishMqttTopic, _subscribeMqttTopic);
@@ -53,8 +69,8 @@ namespace ShellieToHomie {
         }
 
         private void RefreshAllProperties() {
-            _relayStateProperty.Value = ShellyClient.OutputState;
-            _inputStateProperty.Value = ShellyClient.InputState;
+            _stateProperty.Value = ShellyClient.ActualState;
+            _brightnessProperty.Value = ShellyClient.Brightness;
             _actualPowerConsumptionProperty.Value = (float)ShellyClient.PowerInW;
             _internalTemperatureProperty.Value = (float)ShellyClient.TemperatureInC;
             _energyUsedProperty.Value = (float)ShellyClient.EnergyInKwh;

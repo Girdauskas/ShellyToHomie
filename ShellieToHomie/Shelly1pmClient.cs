@@ -1,48 +1,47 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Microsoft.VisualBasic.CompilerServices;
+using DevBot9.Protocols.Homie;
 
 namespace ShellieToHomie {
     public class Shelly1PmClient : INotifyPropertyChanged {
-        private Func<string, string, Task> _publishMqttTopic;
+        private Device.PublishToTopicDelegate _publishMqttTopic;
 
         public bool IsInitialized { get; private set; }
         public string RootMqttTopic { get; private set; }
 
 
-        private bool _relayState;
-        public bool RelayState {
-            get => _relayState;
+        private bool _outputState;
+        public bool OutputState {
+            get => _outputState;
             private set {
-                if (_relayState == value) return;
+                if (_outputState == value) return;
 
-                _relayState = value;
-                NotifyPropertyChanged(nameof(RelayState));
+                _outputState = value;
+                NotifyPropertyChanged(nameof(OutputState));
             }
         }
 
-        private double _relayPowerInW;
-        public double RelayPowerInW {
-            get => _relayPowerInW;
+        private double _powerInW;
+        public double PowerInW {
+            get => _powerInW;
             private set {
-                if (_relayPowerInW == value) return;
+                if (Math.Abs(_powerInW - value) < float.Epsilon) return;
 
-                _relayPowerInW = value;
-                NotifyPropertyChanged(nameof(RelayPowerInW));
+                _powerInW = value;
+                NotifyPropertyChanged(nameof(PowerInW));
             }
         }
 
-        private double _energyUsageInKwh;
-        public double RelayEnergyUsageInKwh {
-            get => _energyUsageInKwh;
+        private double _energyInKwh;
+        public double EnergyInKwh {
+            get => _energyInKwh;
             private set {
-                if (_energyUsageInKwh == value) return;
+                if (Math.Abs(_energyInKwh - value) < float.Epsilon) return;
 
-                _energyUsageInKwh = value;
-                NotifyPropertyChanged(nameof(RelayEnergyUsageInKwh));
+                _energyInKwh = value;
+                NotifyPropertyChanged(nameof(EnergyInKwh));
             }
         }
 
@@ -61,7 +60,7 @@ namespace ShellieToHomie {
         public double TemperatureInC {
             get => _temperatureInC;
             private set {
-                if (_temperatureInC == value) return;
+                if (Math.Abs(_temperatureInC - value) < float.Epsilon) return;
 
                 _temperatureInC = value;
                 NotifyPropertyChanged(nameof(TemperatureInC));
@@ -69,35 +68,48 @@ namespace ShellieToHomie {
         }
 
 
-        public async Task EnableRelayAsync() {
+        public void EnableRelay() {
             if (IsInitialized == false) throw new InvalidOperationException("Object must be initialized before commands can be executed.");
-            await _publishMqttTopic($"{RootMqttTopic}/relay/0/command", "on");
+            _publishMqttTopic($"{RootMqttTopic}/relay/0/command", "on", 1, false);
         }
 
-        public async Task DisableRelayAsync() {
+        public void DisableRelay() {
             if (IsInitialized == false) throw new InvalidOperationException("Object must be initialized before commands can be executed.");
-            await _publishMqttTopic($"{RootMqttTopic}/relay/0/command", "off");
+            _publishMqttTopic($"{RootMqttTopic}/relay/0/command", "off", 1, false);
+        }
+
+        public void SetBrightness(int brightness) {
+            if (IsInitialized == false) throw new InvalidOperationException("Object must be initialized before commands can be executed.");
+
+            var payload = $"{{ \"brightness\": {brightness} }}";
+
+            _publishMqttTopic($"{RootMqttTopic}/light/0/set", payload, 1, false);
         }
 
         public void ProcessMqttMessage(string topic, string value) {
-            if (IsInitialized == false) throw new InvalidOperationException("Object must be initialized before messages can be processed.");
+            //if (IsInitialized == false) throw new InvalidOperationException("Object must be initialized before messages can be processed.");
 
-            if (topic == $"{RootMqttTopic}/relay/0") RelayState = value == "on";
-            else if (topic == $"{RootMqttTopic}/relay/0/power") RelayPowerInW = double.Parse(value, CultureInfo.InvariantCulture);
-            else if (topic == $"{RootMqttTopic}/relay/0/energy") {
+            if (topic == $"{RootMqttTopic}/relay/0") {
+                OutputState = value == "on";
+            } else if (topic == $"{RootMqttTopic}/relay/0/power") {
+                PowerInW = double.Parse(value, CultureInfo.InvariantCulture);
+            } else if (topic == $"{RootMqttTopic}/relay/0/energy") {
                 var energyInWattMinutes = int.Parse(value, CultureInfo.InvariantCulture);
-                RelayEnergyUsageInKwh = energyInWattMinutes / 60000.0;
-            } else if (topic == $"{RootMqttTopic}/input/0") InputState = value == "1";
-            else if (topic == $"{RootMqttTopic}/temperature") TemperatureInC = double.Parse(value, CultureInfo.InvariantCulture);
+                EnergyInKwh = energyInWattMinutes / 60000.0;
+            } else if (topic == $"{RootMqttTopic}/input/0") {
+                InputState = value == "1";
+            } else if (topic == $"{RootMqttTopic}/temperature") {
+                TemperatureInC = double.Parse(value, CultureInfo.InvariantCulture);
+            }
         }
 
-        public async Task InitializeAsync(string rootMqttTopic, Func<string, string, Task> publishMqttTopic, Func<string, Task> subscribeMqttTopic) {
+        public void Initialize(string rootMqttTopic, Device.PublishToTopicDelegate publishMqttTopic, Device.SubscribeToTopicDelegate subscribeMqttTopic) {
             if (IsInitialized) throw new InvalidOperationException("Object can only be initialized once.");
 
             _publishMqttTopic = publishMqttTopic;
             RootMqttTopic = rootMqttTopic;
 
-            await subscribeMqttTopic($"{rootMqttTopic}/#");
+            subscribeMqttTopic($"{rootMqttTopic}/#");
             IsInitialized = true;
         }
 

@@ -10,48 +10,54 @@ using MQTTnet.Client.Receiving;
 namespace ShellieToHomie {
     class Program {
         private static IMqttClient _mqttClient;
-        private static Shelly1PmClient _shelly1PmClient = new Shelly1PmClient();
-        private static Shelly1PmHomieProducer _shelly1PmHomieProducer = new Shelly1PmHomieProducer();
+        private static readonly Shelly1PmClient Shelly1PmClient = new Shelly1PmClient();
+        private static readonly ShellyDimmerClient ShellyDimmerClient = new ShellyDimmerClient();
+        private static readonly Shelly1PmHomieProducer Shelly1PmHomieProducer = new Shelly1PmHomieProducer();
+        private static readonly ShellyDimmerHomieProducer ShellyDimmerHomieProducer = new ShellyDimmerHomieProducer();
 
         static async Task Main(string[] args) {
             var mqttFactory = new MqttFactory();
             _mqttClient = mqttFactory.CreateMqttClient();
             _mqttClient.ApplicationMessageReceivedHandler = new MqttApplicationMessageReceivedHandlerDelegate(HandleMessage);
             var clientOptions = new MqttClientOptions { ChannelOptions = new MqttClientWebSocketOptions { Uri = "ws://192.168.2.2:9001/" } };
-
             await _mqttClient.ConnectAsync(clientOptions, CancellationToken.None);
 
-            await _shelly1PmClient.InitializeAsync("shellies/shelly1pm-68C63AFADFF9", PublishMqttTopic, SubscribeMqttTopic);
-            await _mqttClient.SubscribeAsync("shellies/shelly1pm-68C63AFADFF9/#");
+            while (_mqttClient.IsConnected == false) {
+                await Task.Delay(100);
+            }
 
-            _shelly1PmHomieProducer.Initialize(_shelly1PmClient, "shelly1pm-68C63AFADFF9", "Office lights", ((topic, payload, level, retained) => {
-                var message = new MqttApplicationMessageBuilder().WithTopic(topic).WithPayload(payload).WithQualityOfServiceLevel(level).WithRetainFlag(retained).Build();
-                _mqttClient.PublishAsync(message).Wait();
-            }), (topic => {
-                Console.WriteLine("Subscribing to " + topic);
-                _mqttClient.SubscribeAsync(topic).Wait();
-            }));
+            Shelly1PmClient.Initialize("shellies/shelly1pm-68C63AFADFF9", PublishToTopicDelegate, SubscribeToTopicDelegate);
+            Shelly1PmHomieProducer.Initialize(Shelly1PmClient, "shelly1pm-68C63AFADFF9", "Office lights", PublishToTopicDelegate, SubscribeToTopicDelegate);
+
+            ShellyDimmerClient.Initialize("shellies/shellydimmer-D0E18A", PublishToTopicDelegate, SubscribeToTopicDelegate);
+            ShellyDimmerHomieProducer.Initialize(ShellyDimmerClient, "shellydimmer-D0E18A","Living room dimmer", PublishToTopicDelegate, SubscribeToTopicDelegate);
 
             while (true) {
-                Console.WriteLine("Hello World!");
+                //Shelly1PmClient.EnableRelay();
+                //ShellyDimmerClient.TurnOn();
+                //ShellyDimmerClient.SetBrightness(33);
 
-                await Task.Delay(3000);
+                await Task.Delay(1000);
             }
         }
 
-        private static async Task SubscribeMqttTopic(string topic) {
-            await _mqttClient.SubscribeAsync(topic);
+        private static void PublishToTopicDelegate(string topic, string payload, byte qoslevel, bool isretained) {
+            var message = new MqttApplicationMessageBuilder().WithTopic(topic).WithPayload(payload).WithQualityOfServiceLevel(qoslevel).WithRetainFlag(isretained).Build();
+            _mqttClient.PublishAsync(message).Wait();
         }
 
-        private static async Task PublishMqttTopic(string topic, string value) {
-            await _mqttClient.PublishAsync(topic, Encoding.UTF8.GetBytes(value));
+        private static void SubscribeToTopicDelegate(string topic) {
+            Console.WriteLine("Subscribing to " + topic);
+            _mqttClient.SubscribeAsync(topic).Wait();
         }
 
         private static void HandleMessage(MqttApplicationMessageReceivedEventArgs obj) {
             var payload = Encoding.UTF8.GetString(obj.ApplicationMessage.Payload);
 
-            _shelly1PmClient.ProcessMqttMessage(obj.ApplicationMessage.Topic, payload);
-            _shelly1PmHomieProducer.ProcessMqttMessage(obj.ApplicationMessage.Topic, payload);
+            Shelly1PmClient.ProcessMqttMessage(obj.ApplicationMessage.Topic, payload);
+            Shelly1PmHomieProducer.ProcessMqttMessage(obj.ApplicationMessage.Topic, payload);
+            ShellyDimmerClient.ProcessMqttMessage(obj.ApplicationMessage.Topic, payload);
+            ShellyDimmerHomieProducer.ProcessMqttMessage(obj.ApplicationMessage.Topic, payload);
         }
     }
 }

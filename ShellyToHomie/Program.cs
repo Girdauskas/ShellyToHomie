@@ -22,10 +22,6 @@ namespace ShellieToHomie {
             var clientOptions = new MqttClientOptions { ChannelOptions = new MqttClientWebSocketOptions { Uri = "ws://192.168.2.2:9001/" } };
             await _mqttClient.ConnectAsync(clientOptions, CancellationToken.None);
 
-            while (_mqttClient.IsConnected == false) {
-                await Task.Delay(100);
-            }
-
             Shelly1PmClient.Initialize("shellies/shelly1pm-68C63AFADFF9", PublishToTopicDelegate, SubscribeToTopicDelegate);
             Shelly1PmHomieProducer.Initialize(Shelly1PmClient, "shelly1pm-68C63AFADFF9", "Office lights", PublishToTopicDelegate, SubscribeToTopicDelegate);
 

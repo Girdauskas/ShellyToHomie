@@ -23,10 +23,10 @@ namespace ShellieToHomie {
             await _mqttClient.ConnectAsync(clientOptions, CancellationToken.None);
 
             Shelly1PmClient.Initialize("shellies/shelly1pm-68C63AFADFF9", PublishToTopicDelegate, SubscribeToTopicDelegate);
-            Shelly1PmHomieProducer.Initialize(Shelly1PmClient, "shelly1pm-68C63AFADFF9", "Office lights", PublishToTopicDelegate, SubscribeToTopicDelegate);
+            Shelly1PmHomieProducer.Initialize(Shelly1PmClient, "shelly1pm-68c63afadff9", "Office lights", PublishToTopicDelegate, SubscribeToTopicDelegate);
 
             ShellyDimmerClient.Initialize("shellies/shellydimmer-D0E18A", PublishToTopicDelegate, SubscribeToTopicDelegate);
-            ShellyDimmerHomieProducer.Initialize(ShellyDimmerClient, "shellydimmer-D0E18A", "Living room dimmer", PublishToTopicDelegate, SubscribeToTopicDelegate);
+            ShellyDimmerHomieProducer.Initialize(ShellyDimmerClient, "shellydimmer-d0e18a", "Living room dimmer", PublishToTopicDelegate, SubscribeToTopicDelegate);
 
             while (true) {
                 //Shelly1PmClient.EnableRelay();

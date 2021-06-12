@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Globalization;
 using System.Text.Json;
-using DevBot9.Protocols.Homie;
+using DevBot9.Protocols.Homie.Utilities;
+using INotifyPropertyChanged = System.ComponentModel.INotifyPropertyChanged;
+using PropertyChangedEventArgs = System.ComponentModel.PropertyChangedEventArgs;
+using PropertyChangedEventHandler = System.ComponentModel.PropertyChangedEventHandler;
 
 namespace ShellieToHomie {
     public class ShellyDimmerClient : INotifyPropertyChanged {
-        private Device.PublishToTopicDelegate _publishMqttTopic;
+        public ResilientHomieBroker Broker { get; } = new ResilientHomieBroker();
 
         public string RootMqttTopic { get; private set; }
 
@@ -71,30 +73,31 @@ namespace ShellieToHomie {
         public void TurnOn() {
             if (IsInitialized == false) throw new InvalidOperationException("Object must be initialized before commands can be executed.");
 
-            _publishMqttTopic($"{RootMqttTopic}/light/0/command", "on", 1, false);
+            Broker.PublishToTopic($"{RootMqttTopic}/light/0/command", "on", 1, false);
         }
 
         public void TurnOff() {
             if (IsInitialized == false) throw new InvalidOperationException("Object must be initialized before commands can be executed.");
 
-            _publishMqttTopic($"{RootMqttTopic}/light/0/command", "off", 1, false);
+            Broker.PublishToTopic($"{RootMqttTopic}/light/0/command", "off", 1, false);
         }
 
         public void SetBrightness(int level) {
             if (IsInitialized == false) throw new InvalidOperationException("Object must be initialized before commands can be executed.");
 
             var json = $"{{ \"brightness\": {level} }}";
-            _publishMqttTopic($"{RootMqttTopic}/light/0/set", json, 1, false);
+            Broker.PublishToTopic($"{RootMqttTopic}/light/0/set", json, 1, false);
         }
 
 
-        public void Initialize(string rootMqttTopic, Device.PublishToTopicDelegate publishMqttTopic, Device.SubscribeToTopicDelegate subscribeMqttTopic) {
-            // if (IsInitialized) throw new InvalidOperationException("Object can only be initialized once.");
+        public void Initialize(string rootMqttTopic, string mqttBrokerIpAddress) {
+            if (IsInitialized) throw new InvalidOperationException("Object can only be initialized once.");
 
-            _publishMqttTopic = publishMqttTopic;
+            Broker.PublishReceived += ProcessMqttMessage;
+
+            Broker.Initialize(mqttBrokerIpAddress);
             RootMqttTopic = rootMqttTopic;
-
-            subscribeMqttTopic($"{rootMqttTopic}/#");
+            Broker.SubscribeToTopic($"{rootMqttTopic}/#");
             IsInitialized = true;
         }
 

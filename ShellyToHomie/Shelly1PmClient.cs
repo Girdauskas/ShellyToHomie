@@ -1,15 +1,17 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Globalization;
-using DevBot9.Protocols.Homie;
+using DevBot9.Protocols.Homie.Utilities;
+using INotifyPropertyChanged = System.ComponentModel.INotifyPropertyChanged;
+using PropertyChangedEventArgs = System.ComponentModel.PropertyChangedEventArgs;
+using PropertyChangedEventHandler = System.ComponentModel.PropertyChangedEventHandler;
 
 namespace ShellieToHomie {
     public class Shelly1PmClient : INotifyPropertyChanged {
-        private Device.PublishToTopicDelegate _publishMqttTopic;
 
         public bool IsInitialized { get; private set; }
         public string RootMqttTopic { get; private set; }
 
+        public ResilientHomieBroker Broker { get; } = new ResilientHomieBroker();
 
         private bool _outputState;
         public bool OutputState {
@@ -69,12 +71,12 @@ namespace ShellieToHomie {
 
         public void EnableRelay() {
             if (IsInitialized == false) throw new InvalidOperationException("Object must be initialized before commands can be executed.");
-            _publishMqttTopic($"{RootMqttTopic}/relay/0/command", "on", 1, false);
+            Broker.PublishToTopic($"{RootMqttTopic}/relay/0/command", "on", 1, false);
         }
 
         public void DisableRelay() {
             if (IsInitialized == false) throw new InvalidOperationException("Object must be initialized before commands can be executed.");
-            _publishMqttTopic($"{RootMqttTopic}/relay/0/command", "off", 1, false);
+            Broker.PublishToTopic($"{RootMqttTopic}/relay/0/command", "off", 1, false);
         }
 
         public void SetBrightness(int brightness) {
@@ -82,7 +84,7 @@ namespace ShellieToHomie {
 
             var payload = $"{{ \"brightness\": {brightness} }}";
 
-            _publishMqttTopic($"{RootMqttTopic}/light/0/set", payload, 1, false);
+            Broker.PublishToTopic($"{RootMqttTopic}/light/0/set", payload, 1, false);
         }
 
         public void ProcessMqttMessage(string topic, string value) {
@@ -102,13 +104,14 @@ namespace ShellieToHomie {
             }
         }
 
-        public void Initialize(string rootMqttTopic, Device.PublishToTopicDelegate publishMqttTopic, Device.SubscribeToTopicDelegate subscribeMqttTopic) {
+        public void Initialize(string rootMqttTopic, string mqttBrokerIpAddress) {
             if (IsInitialized) throw new InvalidOperationException("Object can only be initialized once.");
 
-            _publishMqttTopic = publishMqttTopic;
-            RootMqttTopic = rootMqttTopic;
+            Broker.PublishReceived += ProcessMqttMessage;
 
-            subscribeMqttTopic($"{rootMqttTopic}/#");
+            RootMqttTopic = rootMqttTopic;
+            Broker.Initialize(mqttBrokerIpAddress);
+            Broker.SubscribeToTopic($"{rootMqttTopic}/#");
             IsInitialized = true;
         }
 

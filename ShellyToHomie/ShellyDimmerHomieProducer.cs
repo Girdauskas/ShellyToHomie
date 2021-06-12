@@ -1,12 +1,13 @@
 ﻿using DevBot9.Protocols.Homie;
+using DevBot9.Protocols.Homie.Utilities;
 
 namespace ShellieToHomie {
     public class ShellyDimmerHomieProducer {
         private HostDevice _hostDevice;
-        private Device.PublishToTopicDelegate _publishMqttTopic;
-        private Device.SubscribeToTopicDelegate _subscribeMqttTopic;
 
         public ShellyDimmerClient ShellyClient { get; private set; }
+
+        public ResilientHomieBroker Broker { get; } = new();
 
         private HostBooleanProperty _stateProperty;
         private HostIntegerProperty _brightnessProperty;
@@ -18,11 +19,8 @@ namespace ShellieToHomie {
 
         public bool IsInitialized { get; private set; }
 
-        public void Initialize(ShellyDimmerClient shellyClient, string homieDeviceId, string homieDeviceFriendlyName, Device.PublishToTopicDelegate publishToTopicDelegate, Device.SubscribeToTopicDelegate subscribeToTopicDelegate) {
+        public void Initialize(ShellyDimmerClient shellyClient, string homieDeviceId, string homieDeviceFriendlyName, string mqttBrokerIpAddress) {
             ShellyClient = shellyClient;
-
-            _publishMqttTopic = publishToTopicDelegate;
-            _subscribeMqttTopic = subscribeToTopicDelegate;
 
             _hostDevice = DeviceFactory.CreateHostDevice(homieDeviceId, homieDeviceFriendlyName);
 
@@ -57,7 +55,9 @@ namespace ShellieToHomie {
                 ShellyClient.SetBrightness(value);
             };
 
-            _hostDevice.Initialize(_publishMqttTopic, _subscribeMqttTopic);
+            Broker.Initialize(mqttBrokerIpAddress, _hostDevice.WillTopic, _hostDevice.WillPayload);
+            Broker.PublishReceived += _hostDevice.HandlePublishReceived;
+            _hostDevice.Initialize(Broker.PublishToTopic, Broker.SubscribeToTopic);
 
             ShellyClient.PropertyChanged += (sender, args) => {
                 RefreshAllProperties();
@@ -74,12 +74,6 @@ namespace ShellieToHomie {
             _actualPowerConsumptionProperty.Value = (float)ShellyClient.PowerInW;
             _internalTemperatureProperty.Value = (float)ShellyClient.TemperatureInC;
             _energyUsedProperty.Value = (float)ShellyClient.EnergyInKwh;
-        }
-
-        public void ProcessMqttMessage(string fullTopic, string payload) {
-            if (IsInitialized == false) return;
-
-            _hostDevice.HandlePublishReceived(fullTopic, payload);
         }
     }
 }

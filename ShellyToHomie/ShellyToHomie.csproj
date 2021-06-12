@@ -2,12 +2,12 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DevBot9.Protocols.Homie" Version="0.7.0" />
-    <PackageReference Include="MQTTnet" Version="3.0.15" />
+    <PackageReference Include="DevBot9.Protocols.Homie" Version="0.9.0-preview.43" />
+    <PackageReference Include="DevBot9.Protocols.Homie.Utilities" Version="0.9.0-preview.38" />
   </ItemGroup>
 
 </Project>

@@ -1,7 +1,7 @@
 ﻿using DevBot9.Protocols.Homie;
 using DevBot9.Protocols.Homie.Utilities;
 
-namespace ShellieToHomie {
+namespace ShellyToHomie {
     public class ShellyDimmerHomieProducer {
         private HostDevice _hostDevice;
 

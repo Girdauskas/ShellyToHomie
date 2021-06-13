@@ -1,7 +1,7 @@
 ﻿using DevBot9.Protocols.Homie;
 using DevBot9.Protocols.Homie.Utilities;
 
-namespace ShellieToHomie {
+namespace ShellyToHomie {
     public class Shelly1PmHomieProducer {
         private HostDevice _hostDevice;
         public ResilientHomieBroker Broker { get; } = new();

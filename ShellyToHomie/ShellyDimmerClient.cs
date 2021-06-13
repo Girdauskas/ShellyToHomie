@@ -7,9 +7,9 @@ using INotifyPropertyChanged = System.ComponentModel.INotifyPropertyChanged;
 using PropertyChangedEventArgs = System.ComponentModel.PropertyChangedEventArgs;
 using PropertyChangedEventHandler = System.ComponentModel.PropertyChangedEventHandler;
 
-namespace ShellieToHomie {
+namespace ShellyToHomie {
     public class ShellyDimmerClient : INotifyPropertyChanged {
-        public ResilientHomieBroker Broker { get; } = new ResilientHomieBroker();
+        public ResilientHomieBroker Broker { get; } = new();
 
         public string RootMqttTopic { get; private set; }
 

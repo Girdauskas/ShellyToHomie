@@ -5,13 +5,13 @@ using INotifyPropertyChanged = System.ComponentModel.INotifyPropertyChanged;
 using PropertyChangedEventArgs = System.ComponentModel.PropertyChangedEventArgs;
 using PropertyChangedEventHandler = System.ComponentModel.PropertyChangedEventHandler;
 
-namespace ShellieToHomie {
+namespace ShellyToHomie {
     public class Shelly1PmClient : INotifyPropertyChanged {
 
         public bool IsInitialized { get; private set; }
         public string RootMqttTopic { get; private set; }
 
-        public ResilientHomieBroker Broker { get; } = new ResilientHomieBroker();
+        public ResilientHomieBroker Broker { get; } = new();
 
         private bool _outputState;
         public bool OutputState {

@@ -1,5 +1,4 @@
 ﻿using System.Threading.Tasks;
-using ShellieToHomie;
 
 namespace ShellyToHomie {
     class Program {

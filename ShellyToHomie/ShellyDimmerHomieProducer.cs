@@ -1,4 +1,5 @@
-﻿using DevBot9.Protocols.Homie;
+﻿using System.Threading;
+using DevBot9.Protocols.Homie;
 using DevBot9.Protocols.Homie.Utilities;
 
 namespace ShellyToHomie {
@@ -56,6 +57,8 @@ namespace ShellyToHomie {
             };
 
             Broker.Initialize(mqttBrokerIpAddress, _hostDevice.WillTopic, _hostDevice.WillPayload);
+            Thread.Sleep(2000);
+
             Broker.PublishReceived += _hostDevice.HandlePublishReceived;
             _hostDevice.Initialize(Broker.PublishToTopic, Broker.SubscribeToTopic);
 

@@ -5,17 +5,17 @@ using DevBot9.Protocols.Homie.Utilities;
 namespace ShellyToHomie {
     public class Shelly1PmHomieProducer {
         private HostDevice _hostDevice;
-        public ResilientHomieBroker Broker { get; } = new();
+        public PahoBroker Broker { get; } = new();
 
         public Shelly1PmClient ShellyClient { get; private set; }
 
-        private HostBooleanProperty _relayStateProperty;
-        private HostBooleanProperty _inputStateProperty;
-        private HostBooleanProperty _relayControlProperty;
+        private HostChoiceProperty _relayStateProperty;
+        private HostChoiceProperty _inputStateProperty;
+        private HostChoiceProperty _relayControlProperty;
 
-        private HostFloatProperty _actualPowerConsumptionProperty;
-        private HostFloatProperty _energyUsedProperty;
-        private HostFloatProperty _internalTemperatureProperty;
+        private HostNumberProperty _actualPowerConsumptionProperty;
+        private HostNumberProperty _energyUsedProperty;
+        private HostNumberProperty _internalTemperatureProperty;
 
         public bool IsInitialized { get; private set; }
 
@@ -25,25 +25,22 @@ namespace ShellyToHomie {
             _hostDevice = DeviceFactory.CreateHostDevice(homieDeviceId, homieDeviceFriendlyName);
 
             _hostDevice.UpdateNodeInfo("basic", "Basic", "no-type");
-            _relayStateProperty = _hostDevice.CreateHostBooleanProperty(PropertyType.State, "basic", "actual-relay-state", "Actual relay state", ShellyClient.OutputState);
-            _inputStateProperty = _hostDevice.CreateHostBooleanProperty(PropertyType.State, "basic", "actual-input-state", "Actual input state", ShellyClient.InputState);
-            _relayControlProperty = _hostDevice.CreateHostBooleanProperty(PropertyType.Command, "basic", "relay-control", "Manual relay control");
+            _relayStateProperty = _hostDevice.CreateHostChoiceProperty(PropertyType.State, "basic", "actual-relay-state", "Actual relay state", new[] { "ON", "OFF" }, ShellyClient.OutputState ? "ON" : "OFF");
+            _inputStateProperty = _hostDevice.CreateHostChoiceProperty(PropertyType.State, "basic", "actual-input-state", "Actual input state", new[] { "ON", "OFF" }, ShellyClient.InputState ? "ON" : "OFF");
+            _relayControlProperty = _hostDevice.CreateHostChoiceProperty(PropertyType.Command, "basic", "relay-control", "Manual relay control", new[] { "ON", "OFF" });
 
             _hostDevice.UpdateNodeInfo("advanced", "Advanced", "no-type");
-            _actualPowerConsumptionProperty = _hostDevice.CreateHostFloatProperty(PropertyType.State, "advanced", "actual-power-consumption", "Actual power consumption", (float)ShellyClient.PowerInW, "W");
-            _internalTemperatureProperty = _hostDevice.CreateHostFloatProperty(PropertyType.State, "advanced", "internal-temperature", "Internal temperature", (float)shellyClient.TemperatureInC, "°C");
-            _energyUsedProperty = _hostDevice.CreateHostFloatProperty(PropertyType.State, "advanced", "energy-used", "Energy used", (float)shellyClient.EnergyInKwh, "kWh");
+            _actualPowerConsumptionProperty = _hostDevice.CreateHostNumberProperty(PropertyType.State, "advanced", "actual-power-consumption", "Actual power consumption", (float)ShellyClient.PowerInW, "W");
+            _internalTemperatureProperty = _hostDevice.CreateHostNumberProperty(PropertyType.State, "advanced", "internal-temperature", "Internal temperature", (float)shellyClient.TemperatureInC, "°C");
+            _energyUsedProperty = _hostDevice.CreateHostNumberProperty(PropertyType.State, "advanced", "energy-used", "Energy used", (float)shellyClient.EnergyInKwh, "kWh");
 
             _relayControlProperty.PropertyChanged += (sender, args) => {
-                if (_relayControlProperty.Value) ShellyClient.EnableRelay();
-                else ShellyClient.DisableRelay();
+                if (_relayControlProperty.Value == "ON") ShellyClient.EnableRelay();
+                if (_relayControlProperty.Value == "OFF") ShellyClient.DisableRelay();
             };
 
-            Broker.Initialize(mqttBrokerIpAddress, _hostDevice.WillTopic, _hostDevice.WillPayload);
-            Thread.Sleep(2000);
-
-            Broker.PublishReceived += _hostDevice.HandlePublishReceived;
-            _hostDevice.Initialize(Broker.PublishToTopic, Broker.SubscribeToTopic);
+            Broker.Initialize(mqttBrokerIpAddress);
+            _hostDevice.Initialize(Broker);
 
             ShellyClient.PropertyChanged += (sender, args) => {
                 RefreshAllProperties();
@@ -55,8 +52,8 @@ namespace ShellyToHomie {
         }
 
         private void RefreshAllProperties() {
-            _relayStateProperty.Value = ShellyClient.OutputState;
-            _inputStateProperty.Value = ShellyClient.InputState;
+            _relayStateProperty.Value = ShellyClient.OutputState ? "ON" : "OFF";
+            _inputStateProperty.Value = ShellyClient.InputState ? "ON" : "OFF";
             _actualPowerConsumptionProperty.Value = (float)ShellyClient.PowerInW;
             _internalTemperatureProperty.Value = (float)ShellyClient.TemperatureInC;
             _energyUsedProperty.Value = (float)ShellyClient.EnergyInKwh;

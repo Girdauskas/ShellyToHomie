@@ -1,5 +1,4 @@
-﻿using System.Threading;
-using DevBot9.Protocols.Homie;
+﻿using DevBot9.Protocols.Homie;
 using DevBot9.Protocols.Homie.Utilities;
 
 namespace ShellyToHomie {
@@ -8,15 +7,15 @@ namespace ShellyToHomie {
 
         public ShellyDimmerClient ShellyClient { get; private set; }
 
-        public ResilientHomieBroker Broker { get; } = new();
+        public IMqttBroker Broker { get; } = new PahoBroker();
 
-        private HostBooleanProperty _stateProperty;
-        private HostIntegerProperty _brightnessProperty;
-        private HostBooleanProperty _onOffCommand;
+        private HostChoiceProperty _stateProperty;
+        private HostNumberProperty _brightnessProperty;
+        private HostChoiceProperty _onOffCommand;
 
-        private HostFloatProperty _actualPowerConsumptionProperty;
-        private HostFloatProperty _energyUsedProperty;
-        private HostFloatProperty _internalTemperatureProperty;
+        private HostNumberProperty _actualPowerConsumptionProperty;
+        private HostNumberProperty _energyUsedProperty;
+        private HostNumberProperty _internalTemperatureProperty;
 
         public bool IsInitialized { get; private set; }
 
@@ -26,18 +25,18 @@ namespace ShellyToHomie {
             _hostDevice = DeviceFactory.CreateHostDevice(homieDeviceId, homieDeviceFriendlyName);
 
             _hostDevice.UpdateNodeInfo("basic", "Basic", "no-type");
-            _stateProperty = _hostDevice.CreateHostBooleanProperty(PropertyType.State, "basic", "actual-state", "Actual state", ShellyClient.ActualState);
-            _brightnessProperty = _hostDevice.CreateHostIntegerProperty(PropertyType.Parameter, "basic", "brightness", "Brightness", ShellyClient.Brightness);
-            _onOffCommand = _hostDevice.CreateHostBooleanProperty(PropertyType.Command, "basic", "on-off-command", "Turn on off");
+            _stateProperty = _hostDevice.CreateHostChoiceProperty(PropertyType.State, "basic", "actual-state", "Actual state", new []{"ON", "OFF"}, ShellyClient.ActualState ? "ON" : "OFF");
+            _brightnessProperty = _hostDevice.CreateHostNumberProperty(PropertyType.Parameter, "basic", "brightness", "Brightness", ShellyClient.Brightness, "%", 0);
+            _onOffCommand = _hostDevice.CreateHostChoiceProperty(PropertyType.Command, "basic", "on-off-command", "Turn on off", new []{"ON", "OFF"});
 
             _hostDevice.UpdateNodeInfo("advanced", "Advanced", "no-type");
-            _actualPowerConsumptionProperty = _hostDevice.CreateHostFloatProperty(PropertyType.State, "advanced", "actual-power-consumption", "Actual power consumption", (float)ShellyClient.PowerInW, "W");
-            _internalTemperatureProperty = _hostDevice.CreateHostFloatProperty(PropertyType.State, "advanced", "internal-temperature", "Internal temperature", (float)shellyClient.TemperatureInC, "°C");
-            _energyUsedProperty = _hostDevice.CreateHostFloatProperty(PropertyType.State, "advanced", "energy-used", "Energy used", (float)shellyClient.EnergyInKwh, "kWh");
+            _actualPowerConsumptionProperty = _hostDevice.CreateHostNumberProperty(PropertyType.State, "advanced", "actual-power-consumption", "Actual power consumption", (float)ShellyClient.PowerInW, "W");
+            _internalTemperatureProperty = _hostDevice.CreateHostNumberProperty(PropertyType.State, "advanced", "internal-temperature", "Internal temperature", (float)shellyClient.TemperatureInC, "°C");
+            _energyUsedProperty = _hostDevice.CreateHostNumberProperty(PropertyType.State, "advanced", "energy-used", "Energy used", (float)shellyClient.EnergyInKwh, "kWh");
 
             _onOffCommand.PropertyChanged += (sender, args) => {
-                if (_onOffCommand.Value) ShellyClient.TurnOn();
-                else ShellyClient.TurnOff();
+                if (_onOffCommand.Value == "ON") ShellyClient.TurnOn();
+                if (_onOffCommand.Value == "OFF") ShellyClient.TurnOff();
             };
 
             _brightnessProperty.PropertyChanged += (sender, args) => {
@@ -53,14 +52,11 @@ namespace ShellyToHomie {
                     _brightnessProperty.Value = value;
                 }
 
-                ShellyClient.SetBrightness(value);
+                ShellyClient.SetBrightness((int)value);
             };
 
-            Broker.Initialize(mqttBrokerIpAddress, _hostDevice.WillTopic, _hostDevice.WillPayload);
-            Thread.Sleep(2000);
-
-            Broker.PublishReceived += _hostDevice.HandlePublishReceived;
-            _hostDevice.Initialize(Broker.PublishToTopic, Broker.SubscribeToTopic);
+            Broker.Initialize(mqttBrokerIpAddress);
+            _hostDevice.Initialize(Broker);
 
             ShellyClient.PropertyChanged += (sender, args) => {
                 RefreshAllProperties();
@@ -72,7 +68,7 @@ namespace ShellyToHomie {
         }
 
         private void RefreshAllProperties() {
-            _stateProperty.Value = ShellyClient.ActualState;
+            _stateProperty.Value = ShellyClient.ActualState ? "ON" : "OFF";
             _brightnessProperty.Value = ShellyClient.Brightness;
             _actualPowerConsumptionProperty.Value = (float)ShellyClient.PowerInW;
             _internalTemperatureProperty.Value = (float)ShellyClient.TemperatureInC;

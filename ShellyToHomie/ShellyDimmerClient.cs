@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.Text.Json;
+using System.Threading;
 using DevBot9.Protocols.Homie.Utilities;
-using INotifyPropertyChanged = System.ComponentModel.INotifyPropertyChanged;
-using PropertyChangedEventArgs = System.ComponentModel.PropertyChangedEventArgs;
-using PropertyChangedEventHandler = System.ComponentModel.PropertyChangedEventHandler;
 
 namespace ShellyToHomie {
     public class ShellyDimmerClient : INotifyPropertyChanged {
@@ -96,6 +95,12 @@ namespace ShellyToHomie {
             Broker.PublishReceived += ProcessMqttMessage;
 
             Broker.Initialize(mqttBrokerIpAddress);
+
+            while (Broker.IsConnected == false) {
+                Console.WriteLine($"{DateTime.Now} waiting for broker connection");
+                Thread.Sleep(100);
+            }
+
             RootMqttTopic = rootMqttTopic;
             Broker.SubscribeToTopic($"{rootMqttTopic}/#");
             IsInitialized = true;

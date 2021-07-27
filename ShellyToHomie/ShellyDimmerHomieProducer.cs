@@ -1,4 +1,4 @@
-﻿using DevBot9.Protocols.Homie;
+using DevBot9.Protocols.Homie;
 using DevBot9.Protocols.Homie.Utilities;
 
 namespace ShellyToHomie {
@@ -7,7 +7,7 @@ namespace ShellyToHomie {
 
         public ShellyDimmerClient ShellyClient { get; private set; }
 
-        public IMqttBroker Broker { get; } = new PahoBroker();
+        public PahoHostDeviceConnection Broker { get; } = new();
 
         private HostChoiceProperty _stateProperty;
         private HostNumberProperty _brightnessProperty;

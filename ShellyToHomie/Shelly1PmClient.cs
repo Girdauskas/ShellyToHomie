@@ -1,9 +1,8 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Globalization;
+using System.Threading;
 using DevBot9.Protocols.Homie.Utilities;
-using INotifyPropertyChanged = System.ComponentModel.INotifyPropertyChanged;
-using PropertyChangedEventArgs = System.ComponentModel.PropertyChangedEventArgs;
-using PropertyChangedEventHandler = System.ComponentModel.PropertyChangedEventHandler;
 
 namespace ShellyToHomie {
     public class Shelly1PmClient : INotifyPropertyChanged {
@@ -111,6 +110,14 @@ namespace ShellyToHomie {
 
             RootMqttTopic = rootMqttTopic;
             Broker.Initialize(mqttBrokerIpAddress);
+
+            while (Broker.IsConnected == false) {
+                Console.WriteLine($"{DateTime.Now} waiting for broker connection.");
+                Thread.Sleep(100);
+            }
+
+            Console.WriteLine($"{DateTime.Now} broker connected.");
+
             Broker.SubscribeToTopic($"{rootMqttTopic}/#");
             IsInitialized = true;
         }

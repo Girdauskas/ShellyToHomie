@@ -1,11 +1,10 @@
-﻿using System.Threading;
-using DevBot9.Protocols.Homie;
+﻿using DevBot9.Protocols.Homie;
 using DevBot9.Protocols.Homie.Utilities;
 
 namespace ShellyToHomie {
     public class Shelly1PmHomieProducer {
         private HostDevice _hostDevice;
-        public PahoBroker Broker { get; } = new();
+        public PahoHostDeviceConnection Broker { get; } = new();
 
         public Shelly1PmClient ShellyClient { get; private set; }
 

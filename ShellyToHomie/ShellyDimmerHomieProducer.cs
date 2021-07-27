@@ -30,9 +30,9 @@ namespace ShellyToHomie {
             _onOffCommand = _hostDevice.CreateHostChoiceProperty(PropertyType.Command, "basic", "on-off-command", "Turn on off", new []{"ON", "OFF"});
 
             _hostDevice.UpdateNodeInfo("advanced", "Advanced", "no-type");
-            _actualPowerConsumptionProperty = _hostDevice.CreateHostNumberProperty(PropertyType.State, "advanced", "actual-power-consumption", "Actual power consumption", (float)ShellyClient.PowerInW, "W");
-            _internalTemperatureProperty = _hostDevice.CreateHostNumberProperty(PropertyType.State, "advanced", "internal-temperature", "Internal temperature", (float)shellyClient.TemperatureInC, "°C");
-            _energyUsedProperty = _hostDevice.CreateHostNumberProperty(PropertyType.State, "advanced", "energy-used", "Energy used", (float)shellyClient.EnergyInKwh, "kWh");
+            _actualPowerConsumptionProperty = _hostDevice.CreateHostNumberProperty(PropertyType.State, "advanced", "actual-power-consumption", "Actual power consumption", ShellyClient.PowerInW, "W");
+            _internalTemperatureProperty = _hostDevice.CreateHostNumberProperty(PropertyType.State, "advanced", "internal-temperature", "Internal temperature", shellyClient.TemperatureInC, "°C");
+            _energyUsedProperty = _hostDevice.CreateHostNumberProperty(PropertyType.State, "advanced", "energy-used", "Energy used", shellyClient.EnergyInKwh, "kWh");
 
             _onOffCommand.PropertyChanged += (sender, args) => {
                 if (_onOffCommand.Value == "ON") ShellyClient.TurnOn();
@@ -70,9 +70,9 @@ namespace ShellyToHomie {
         private void RefreshAllProperties() {
             _stateProperty.Value = ShellyClient.ActualState ? "ON" : "OFF";
             _brightnessProperty.Value = ShellyClient.Brightness;
-            _actualPowerConsumptionProperty.Value = (float)ShellyClient.PowerInW;
-            _internalTemperatureProperty.Value = (float)ShellyClient.TemperatureInC;
-            _energyUsedProperty.Value = (float)ShellyClient.EnergyInKwh;
+            _actualPowerConsumptionProperty.Value = ShellyClient.PowerInW;
+            _internalTemperatureProperty.Value = ShellyClient.TemperatureInC;
+            _energyUsedProperty.Value = ShellyClient.EnergyInKwh;
         }
     }
 }

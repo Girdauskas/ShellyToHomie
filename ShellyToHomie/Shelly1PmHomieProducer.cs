@@ -29,9 +29,9 @@ namespace ShellyToHomie {
             _relayControlProperty = _hostDevice.CreateHostChoiceProperty(PropertyType.Command, "basic", "relay-control", "Manual relay control", new[] { "ON", "OFF" });
 
             _hostDevice.UpdateNodeInfo("advanced", "Advanced", "no-type");
-            _actualPowerConsumptionProperty = _hostDevice.CreateHostNumberProperty(PropertyType.State, "advanced", "actual-power-consumption", "Actual power consumption", (float)ShellyClient.PowerInW, "W");
-            _internalTemperatureProperty = _hostDevice.CreateHostNumberProperty(PropertyType.State, "advanced", "internal-temperature", "Internal temperature", (float)shellyClient.TemperatureInC, "°C");
-            _energyUsedProperty = _hostDevice.CreateHostNumberProperty(PropertyType.State, "advanced", "energy-used", "Energy used", (float)shellyClient.EnergyInKwh, "kWh");
+            _actualPowerConsumptionProperty = _hostDevice.CreateHostNumberProperty(PropertyType.State, "advanced", "actual-power-consumption", "Actual power consumption", ShellyClient.PowerInW, "W");
+            _internalTemperatureProperty = _hostDevice.CreateHostNumberProperty(PropertyType.State, "advanced", "internal-temperature", "Internal temperature", shellyClient.TemperatureInC, "°C");
+            _energyUsedProperty = _hostDevice.CreateHostNumberProperty(PropertyType.State, "advanced", "energy-used", "Energy used", shellyClient.EnergyInKwh, "kWh");
 
             _relayControlProperty.PropertyChanged += (sender, args) => {
                 if (_relayControlProperty.Value == "ON") ShellyClient.EnableRelay();
@@ -53,9 +53,9 @@ namespace ShellyToHomie {
         private void RefreshAllProperties() {
             _relayStateProperty.Value = ShellyClient.OutputState ? "ON" : "OFF";
             _inputStateProperty.Value = ShellyClient.InputState ? "ON" : "OFF";
-            _actualPowerConsumptionProperty.Value = (float)ShellyClient.PowerInW;
-            _internalTemperatureProperty.Value = (float)ShellyClient.TemperatureInC;
-            _energyUsedProperty.Value = (float)ShellyClient.EnergyInKwh;
+            _actualPowerConsumptionProperty.Value = ShellyClient.PowerInW;
+            _internalTemperatureProperty.Value = ShellyClient.TemperatureInC;
+            _energyUsedProperty.Value = ShellyClient.EnergyInKwh;
         }
     }
 }

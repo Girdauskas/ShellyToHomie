@@ -38,7 +38,7 @@ namespace ShellyToHomie {
         public double TemperatureInC {
             get => _temperatureInC;
             set {
-                if (Math.Abs(_temperatureInC - value) < float.Epsilon) return;
+                if (Math.Abs(_temperatureInC - value) < double.Epsilon) return;
 
                 _temperatureInC = value;
                 NotifyPropertyChanged(nameof(TemperatureInC));
@@ -49,7 +49,7 @@ namespace ShellyToHomie {
         public double PowerInW {
             get => _powerInW;
             set {
-                if (Math.Abs(_powerInW - value) < float.Epsilon) return;
+                if (Math.Abs(_powerInW - value) < double.Epsilon) return;
 
                 _powerInW = value;
                 NotifyPropertyChanged(nameof(PowerInW));
@@ -60,7 +60,7 @@ namespace ShellyToHomie {
         public double EnergyInKwh {
             get => _energyInKwh;
             set {
-                if (Math.Abs(_energyInKwh - value) < float.Epsilon) return;
+                if (Math.Abs(_energyInKwh - value) < double.Epsilon) return;
 
                 _energyInKwh = value;
                 NotifyPropertyChanged(nameof(EnergyInKwh));
